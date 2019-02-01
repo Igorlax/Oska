@@ -1,0 +1,5 @@
+public class CheckerData : MonoBehaviour {
+
+    public Player Owner;
+
+        }
