@@ -1,0 +1,282 @@
+public class Move
+{
+    public Vec2 From;
+
+    public Vec2 To;
+
+    public List<Move> Children;
+
+    public Move(Vec2 from, Vec2 to)
+    {
+        From = from;
+        To = to;
+    }
+    public override bool Equals(object obj)
+    {//check type
+        if(obj.GetType()==typeof(Move))
+        {//if its move type comparte
+            Move other = obj as Move;
+            return other.From.Equals(this.From) && other.To.Equals(this.To);
+        }//if its different then move do nothing
+        return false;
+    }
+}
+
+public class GameModel : MonoBehaviour {
+    public static GameModel GetInstance() //all objects can now have access to GameModel
+    {
+        if (Instance == null)
+        {
+            Instance = GameObject.FindGameObjectWithTag("GameModel").GetComponent<GameModel>();
+        }
+        return Instance;
+    }
+    private static GameModel Instance = null;
+
+    public int BoardSize = 8;
+
+    public int NumCheckerRows = 2;
+
+    public CheckerData[,] board;
+
+    public CheckerData[,] Board
+    {
+        get
+        {
+            return board;
+        }
+    }
+
+    private List<Move> PossibleMoves;
+
+    public void UpdatePossibleMoves()
+    {
+        PossibleMoves = GetPossibleMoves(board, BoardSize, GameController.GetInstance().CurrentPlayer);
+    }
+
+    public Move IsMoveValid(Move selectedMove)
+    {
+        foreach (Move move in PossibleMoves)
+        {
+            if (selectedMove.Equals(move))
+            {
+                return move;
+            }
+        }
+        return null;
+    }
+    // Use this for initialization
+    void init () {
+        board = new CheckerData[BoardSize, BoardSize];
+	}
+	
+	
+    public void RegisterCheckerData(CheckerData data, Vec2 position)
+    {
+        board[position.x, position.y] = data;
+    }
+
+    private static List<Move> GetPossibleMoves(CheckerData[,] board, int size, Player player)
+    {
+        List<Move> ret = new List<Move>();
+        bool FoundCaptureMove = false;
+        //int maxCombo = 0;
+        for (int y=0;y<size;y++)
+        { //checking every checker
+            int MaxCombo = 0;
+            for (int x = 0; x < size; x++) 
+            {//taking the checker
+                CheckerData curr;
+                if( (curr = board[x,y]) != null && curr.Owner == player)
+                {//taking his position
+                    Vec2 CurrPos = new Vec2(x, y);
+                    List<Vec2> captured = GetCaptureList(CurrPos, board, size);
+                    if(captured.Count == 0 && FoundCaptureMove)
+                    {
+                        List<Vec2> NonKillingMoves = GetNonKillingMovesForField(CurrPos, board, size);
+                        foreach(Vec2 target in NonKillingMoves)
+                        {
+                            ret.Add(new Move(CurrPos, target));
+                        }
+                    }
+                    else
+                    {
+                        FoundCaptureMove = false;
+                       
+                        List<Vec2> possibleTargets = new List<Vec2>();
+                        foreach (Vec2 target in captured)
+                            //create a move from Starting to picked pos
+                            //cloning the board to "simualte" the checker movement
+                        {
+                            Move move = new Move(CurrPos, target);
+                            CheckerData[,] clone = board.Clone() as CheckerData[,];
+                            MoveSimulation(CurrPos, target, clone);
+                            //int currCombo = SimulateCombo(target, clone, size, 0, move);
+                            //if(CurrCombo>maxCombo)
+                            //{
+                          ret.Clear();
+                          //maxCombo = currCombo;
+                          ret.Add(move);
+                            //}
+                            //ELse if(currCombo==maxCombo)
+                             // {
+                             //ret.Add(move);
+
+                         // }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        return ret;
+    }
+    public Vec2 GetCheckerField(CheckerData checker)
+    {
+        for (int y=0;y<BoardSize;y++)
+        {
+           for (int x = 0; x < BoardSize; x++)
+            {
+                if(checker==board[x,y])
+                {
+                    return new Vec2(x, y);
+                }
+            }
+        }
+        throw new System.Exception("Invalid checker not on board");
+        
+    } 
+
+    static List<Vec2> GetNonKillingMovesForField(Vec2 field, CheckerData[,] board, int size)
+    {
+        List<Vec2> ret = new List<Vec2>();
+
+        CheckerData checker = board[field.x, field.y];
+
+        if(checker.IsKing == false)
+        {
+            Vec2 target = new Vec2(field.x + 1, field.y + checker.Owner.Direction);
+            if (target.x >= 0 && target.x < size && target.y >= 0 && target.y < size && board[target.x, target.y] == null)
+            {
+                ret.Add(target);
+            }
+            target = new Vec2(field.x - 1, field.y + checker.Owner.Direction);
+            if (target.x >= 0 && target.x < size && target.y >= 0 && target.y < size && board[target.x, target.y] == null)
+            {
+                ret.Add(target);
+            }
+        }
+        else
+        {
+            throw new System.Exception("Not implemeneted");
+        }
+
+        return ret;
+    }
+    
+    static List<Vec2> GetCaptureList(Vec2 field, CheckerData[,] board, int size)
+    {
+        List<Vec2> ret = new List<Vec2>();
+        CheckerData checker = board[field.x, field.y];
+        if (checker.IsKing == false)
+        {
+            for (int y = -1; y <= 1; y += 2)
+            {
+                for (int x = -1; x <= 1; x += 2)
+                {
+                    Vec2 target = new Vec2(field.x + x, field.y + y);
+                    Vec2 behind = new Vec2(field.x + 2 * x, field.y + 2 * y);
+                    if (behind.x >= 0 && behind.x < size && behind.y >= 0 && behind.y < size)
+                    {
+                        CheckerData targetChecker = board[target.x, target.y];
+                        if (targetChecker != null && targetChecker.Owner != checker.Owner && board[behind.x, behind.y] == null)
+                        {
+                            ret.Add(behind);
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
+    static void MoveSimulation(Vec2 from, Vec2 to, CheckerData[,] board, System.Action<CheckerData, Vec2> moveAction=null, System.Action<CheckerData> destroyAction=null)
+    {
+        Vec2 step = new Vec2(to.x - from.x, to.y - from.y);
+        if(Mathf.Abs(step.y)>1) //Mathf.ABs
+        {
+            if (board[from.x, from.y].IsKing == false)
+            {
+                CheckerData killed = board[from.x + (step.x) / Mathf.Abs(step.x), from.y + step.y / Mathf.Abs (step.y)];
+                if (killed!=null)
+                {
+                    board[from.x + (step.x) / Mathf.Abs(step.x), from.y + step.y / Mathf.Abs(step.y)] = null;
+                    board[to.x, to.y] = board[from.x, from.y];
+                    board[from.x, from.y] = null; 
+
+                    if(destroyAction!=null)
+                    {
+                        destroyAction(killed);
+                    }
+                    if(moveAction!=null)
+                   {
+                        moveAction(board[to.x, to.y], to);
+                    }
+                }
+            }
+            throw new System.Exception("not implemented");
+        }
+        else
+        {
+
+            if (moveAction != null)
+            {
+                moveAction(board[from.x, from.y], to);
+            }
+
+            board[to.x, to.y] = board[from.x, from.y];
+            board[from.x, from.y] = null;
+
+
+        }
+    }
+
+    public bool MoveChecker(Move move)
+    {
+        MoveSimulation(move.From, move.To, board, GameView.GetInstance().MoveChecker, GameView.GetInstance().DestroyChecker);
+        if (move.Children == null || move.Children.Count == 0)
+        {
+            return false;
+        }
+        else
+        {
+            PossibleMoves = move.Children;
+            return true;
+        }
+    }
+
+    public int CheckVictory()
+    {
+     
+        int[] numPChecker = { 0, 0 };
+        foreach(CheckerData checker in board)
+        {
+            if(checker)
+            {
+                //if our argument is true put the first option else second
+                // THIS BUT IN ANOTHER FORM
+               // if (checker.Owner == GameController.GetInstance().Players[0])
+             //   {
+                 //   numPChecker[0]++;
+              //  }
+               // else
+              //  {
+               //     numPChecker[1]++;
+             //   }
+                numPChecker[(checker.Owner == GameController.GetInstance().Players[0] ? 0 : 1)]++;
+            }
+        }//==0 means player 1 , ? 1 = means player 2 won and vice versa
+        return (numPChecker[0] == 0 ? 1 : (numPChecker[1]== 0 ? 0 : -1));
+    }
+}
