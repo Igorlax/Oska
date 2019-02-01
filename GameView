@@ -1,0 +1,94 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
+using UnityEngine;
+
+
+
+public class GameView : MonoBehaviour {
+
+    public static GameView GetInstance()
+    {
+        if (instance==null)
+        {
+            instance = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<GameView>();
+        }
+        return instance;
+    }
+    private static GameView instance;
+
+    public GameObject FieldPrefab;
+
+    public GameObject GameEndUI;
+
+    public Color Player1Color = Color.white;
+
+    public Color Player2Color = Color.black;
+
+    public GameObject CheckerPrefab;
+
+    public Color HighlightColor = Color.blue;
+
+    private Vector3 GetFieldPosition(int x, int y, bool isChecker)
+    {
+        //Getting a singe tile
+        SpriteRenderer renderer = FieldPrefab.GetComponent<SpriteRenderer>();
+        //localScale - set in options mine is 200
+        float fieldSize = renderer.sprite.bounds.size.x * FieldPrefab.transform.localScale.x;
+        //starting position = half fieldsize - middle (0x 0y)
+        float startFieldPosition = 0.0f-(fieldSize * GameModel.GetInstance().BoardSize / 2);
+        return new Vector3(startFieldPosition + x * fieldSize, startFieldPosition + y * fieldSize, (isChecker ? -1.0f : 0.0f));
+    }
+	// Use this for initialization
+	void Init () {
+		for(int y=0;y<GameModel.GetInstance().BoardSize;y++)
+        {
+            for (int x=0;x<GameModel.GetInstance().BoardSize;x++)
+            { //Instantiate = create new copy !!!!new Vector3(x * 200.0F, 0, 0)!!!
+                SpriteRenderer newField = (Instantiate(FieldPrefab, GetFieldPosition(x, y, false), Quaternion.identity) as GameObject).GetComponent<SpriteRenderer>();
+                //naming our x and y
+                newField.GetComponent<FieldData>().X = x;
+                newField.GetComponent<FieldData>().Y = y;
+                //if plane x and y are divisible by 2 
+                if ((x % 2 == 0 && y % 2 == 0) || (x % 2 == 1 && y % 2 == 1))
+                {
+                    newField.color = Color.grey;
+                    //put the bracket here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    if (y < GameModel.GetInstance().NumCheckerRows)
+                    {
+                        GameObject checker = Instantiate(CheckerPrefab, GetFieldPosition(x, y, true), Quaternion.identity) as GameObject;
+                        checker.GetComponent<MeshRenderer>().material.color = Player1Color;
+                        GameModel.GetInstance().RegisterCheckerData(checker.GetComponent<CheckerData>(), new Vec2(x, y));
+                    }
+                    else if (y >= GameModel.GetInstance().BoardSize - GameModel.GetInstance().NumCheckerRows)
+                    {
+                        GameObject checker = Instantiate(CheckerPrefab, GetFieldPosition(x, y, true), Quaternion.identity) as GameObject;
+                        checker.GetComponent<SpriteRenderer>().material.color = Player2Color;
+                        GameModel.GetInstance().RegisterCheckerData(checker.GetComponent<CheckerData>(), new Vec2(x, y));
+
+                    }
+                }
+    }
+            }
+        }
+
+    public void HighlightChecker(CheckerData toHighlight, CheckerData PreviouslyHighlighted = null)
+    {
+        if (PreviouslyHighlighted)
+        {//sets color to color of owner
+            PreviouslyHighlighted.gameObject.GetComponent<SpriteRenderer>().color = (PreviouslyHighlighted.Owner == GameController.GetInstance().Players[0] ? Color.white : Color.black);
+        }
+        if (toHighlight)
+        {
+            toHighlight.gameObject.GetComponent<SpriteRenderer>().color = Color.blue;
+        }
+    }
+    public void DestroyChecker(CheckerData checker)
+    {
+        Destroy(checker.gameObject);
+    }
+    public void MoveChecker (CheckerData checker, Vec2 target)
+    {
+        checker.gameObject.transform.position = GetFieldPosition(target.x, target.y, true);
+    }
+}
