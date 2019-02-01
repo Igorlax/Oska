@@ -1,0 +1,112 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class HumanPlayer : Player {
+    public CheckerData SelectedChecker
+    {
+        get
+        {
+            return selectedChecker;
+        }
+        set
+        {
+            GameView.GetInstance().HighlightChecker(value, selectedChecker);
+            selectedChecker = value;
+        }
+    }
+
+    private CheckerData selectedChecker;
+
+    enum PlayerState
+    {
+        SelectingChecker,
+        SelectingField
+    }
+
+    private PlayerState currentState = PlayerState.SelectingChecker;
+
+    public override void ProcessTurn()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {//Finding if we clicked on anything / if so then do 
+           
+            RaycastHit hit;
+            if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit, 1000.0f))
+                {
+                if (currentState == PlayerState.SelectingChecker)
+                {
+                    StateSelectingChecker(hit);
+                }
+                else if (currentState == PlayerState.SelectingField)
+                {
+                    StateSelectingField(hit);
+                }
+            }
+            else
+            { //if we hit nothing / null
+                selectedChecker = null;
+                currentState = PlayerState.SelectingChecker;
+            }
+        }
+    }
+    private void StateSelectingChecker(RaycastHit hit)
+    {//pick the checker/ if its outs
+        if(hit.collider.tag==GameController.CheckerTag)
+        {
+            CheckerData checker = hit.collider.GetComponent<CheckerData>();
+            if(GameController.GetInstance().CurrentPlayer==checker.Owner)
+            { //changing state / to pick the next move to checker
+                SelectedChecker = checker;
+                currentState = PlayerState.SelectingField; 
+            }
+            else
+            { // no  need to change anything
+                SelectedChecker = null;
+            }
+        }
+        else if(hit.collider.tag==GameController.FieldTag)
+        {
+            SelectedChecker = null;
+
+        }
+    }
+    private void StateSelectingField(RaycastHit hit)
+    {
+        if (hit.collider.tag == GameController.FieldTag)
+        {
+            FieldData fData = hit.collider.GetComponent<FieldData>();
+            Move move = new Move(GameModel.GetInstance().GetCheckerField(selectedChecker), new Vec2(fData.X, fData.Y));
+            if ((move = GameModel.GetInstance().IsMoveValid(move)) != null)
+            {
+                if (false == GameModel.GetInstance().MoveChecker(move))
+                {
+                    SelectedChecker = null;
+                    currentState = PlayerState.SelectingChecker;
+                    GameController.GetInstance().NextTurn();
+                }
+            }
+            else
+            {
+                SelectedChecker = null;
+                currentState = PlayerState.SelectingChecker;
+            }
+        }
+        else
+        {
+            SelectedChecker = null;
+            currentState = PlayerState.SelectingChecker;
+        }
+    }
+
+    // Use this for initialization
+    void Start () {
+		
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		
+	}
+}
