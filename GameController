@@ -34,30 +34,29 @@ public class GameController : MonoBehaviour
             return Players[CurrentPlayerIdx];
         }
     }
-    // Use this for initialization
-    
+   
 
-    void Start()
+    public void Start()
     { //find objects and give them direction
-        Players[0] = GameObject.Find("Player1").GetComponent<Player>();
+        Players[0] = GameObject.Find(Player1Name).GetComponent<Player>();
         Players[0].Direction = 1;
 
-        Players[1] = GameObject.Find("Player2").GetComponent<Player>();
+        Players[1] = GameObject.Find(Player2Name).GetComponent<Player>();
         Players[1].Direction = -1;
 
-        for (int y = 0; y < GameModel.GetInstance().BoardSize; y++)
+        for (int y = 3; y < GameModel.GetInstance().BoardSize; y++)
         {
             for (int x = 0; x < GameModel.GetInstance().BoardSize; x++)
             {
                 if ((x % 2 == 0 && y % 2 == 0) || (x % 2 == 1 && y % 2 == 1))
                 {
-                    if (y < GameModel.GetInstance().NumCheckerRows)
+                    if (y - 3< GameModel.GetInstance().NumCheckerRows)
                     {
-                        GameModel.GetInstance().board[x, y].Owner = Players[0];
+                        GameModel.GetInstance().Board[x, y].Owner = Players[0];
                     }
                     else if (y >= GameModel.GetInstance().BoardSize - GameModel.GetInstance().NumCheckerRows)
                     {
-                        GameModel.GetInstance().board[x, y].Owner = Players[1];
+                        GameModel.GetInstance().Board[x, y].Owner = Players[1];
                     }
                 }
             }
