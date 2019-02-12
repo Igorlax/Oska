@@ -20,6 +20,7 @@ public class GameView : MonoBehaviour {
     public GameObject FieldPrefab;
 
     public GameObject GameEndUI;
+    
 
     public Color Player1Color = Color.white;
 
@@ -40,8 +41,8 @@ public class GameView : MonoBehaviour {
         return new Vector3(startFieldPosition + x * fieldSize, startFieldPosition + y * fieldSize, (isChecker ? -1.0f : 0.0f));
     }
 	// Use this for initialization
-	void Init () {
-		for(int y=0;y<GameModel.GetInstance().BoardSize;y++)
+	public void Start () {
+		for(int y=3;y<GameModel.GetInstance().BoardSize;y++)
         {
             for (int x=0;x<GameModel.GetInstance().BoardSize;x++)
             { //Instantiate = create new copy !!!!new Vector3(x * 200.0F, 0, 0)!!!
@@ -54,16 +55,16 @@ public class GameView : MonoBehaviour {
                 {
                     newField.color = Color.grey;
                     //put the bracket here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    if (y < GameModel.GetInstance().NumCheckerRows)
+                    if (y - 3 < GameModel.GetInstance().NumCheckerRows)
                     {
                         GameObject checker = Instantiate(CheckerPrefab, GetFieldPosition(x, y, true), Quaternion.identity) as GameObject;
-                        checker.GetComponent<MeshRenderer>().material.color = Player1Color;
+                        checker.GetComponent<SpriteRenderer>().color = Player1Color;
                         GameModel.GetInstance().RegisterCheckerData(checker.GetComponent<CheckerData>(), new Vec2(x, y));
                     }
-                    else if (y >= GameModel.GetInstance().BoardSize - GameModel.GetInstance().NumCheckerRows)
+                    else if (y  >= GameModel.GetInstance().BoardSize - GameModel.GetInstance().NumCheckerRows)
                     {
                         GameObject checker = Instantiate(CheckerPrefab, GetFieldPosition(x, y, true), Quaternion.identity) as GameObject;
-                        checker.GetComponent<SpriteRenderer>().material.color = Player2Color;
+                        checker.GetComponent<SpriteRenderer>().color = Player2Color;
                         GameModel.GetInstance().RegisterCheckerData(checker.GetComponent<CheckerData>(), new Vec2(x, y));
 
                     }
@@ -76,11 +77,11 @@ public class GameView : MonoBehaviour {
     {
         if (PreviouslyHighlighted)
         {//sets color to color of owner
-            PreviouslyHighlighted.gameObject.GetComponent<SpriteRenderer>().color = (PreviouslyHighlighted.Owner == GameController.GetInstance().Players[0] ? Color.white : Color.black);
+            PreviouslyHighlighted.gameObject.GetComponent<SpriteRenderer>().color = (PreviouslyHighlighted.Owner == GameController.GetInstance().Players[0] ? Player1Color : Player2Color);
         }
         if (toHighlight)
         {
-            toHighlight.gameObject.GetComponent<SpriteRenderer>().color = Color.blue;
+            toHighlight.gameObject.GetComponent<SpriteRenderer>().color = HighlightColor;
         }
     }
     public void DestroyChecker(CheckerData checker)
